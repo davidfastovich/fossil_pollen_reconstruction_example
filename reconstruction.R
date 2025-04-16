@@ -7,6 +7,7 @@
 
 library(openxlsx)
 library(rioja)
+library(analogue)
 library(tidyverse)
 
 #########################################
@@ -235,11 +236,6 @@ gds519_ws64_pct_join <- analogue::join(gds519_ws64_pct, modern_pollen_ready)
 #################
 # BUILD MAT MODEL
 #################
-
-# There's a single new surface sample site without coordinates that has NA's
-# for climate variables. Removing now.
-whitmore_picea_east_ws64_pct <- whitmore_picea_east_ws64_pct[!is.na(modern_climate_east$tave),]
-modern_climate_east <- modern_climate_east[!is.na(modern_climate_east$tave),]
 
 # Build models
 mat_model_tave <- rioja::MAT(
