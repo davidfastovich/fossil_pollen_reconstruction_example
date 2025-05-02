@@ -57,6 +57,7 @@ modern_pollen_ws64 <- as.data.frame(
 
 modern_pollen_ws64$ID1 <- modern_pollen$ID1
 modern_pollen_ws64$ID2 <- modern_pollen$ID2
+modern_pollen_ws64$SITENAME <- modern_pollen$SITENAME
 
 ##########################################################################
 # REMOVE ALL PICEA WEST SITES AND SPLIT PINUS INTO NORTHEAST AND SOUTHEAST
@@ -156,11 +157,14 @@ all(modern_climate_ready$ID1 == modern_pollen_ws64_with_splits$ID1)
 ###########################################################
 
 # Labeled "ready" because its the final data frame used for analyses
+rownames(modern_pollen_ws64_with_splits) <- modern_pollen_ws64_with_splits$ID1
+
 modern_pollen_ready <- modern_pollen_ws64_with_splits %>% 
   select(
     !c(
       ID1,
       ID2,
+      SITENAME,
       PicEast,
       PinNE,
       PinSE
@@ -208,16 +212,16 @@ modern_pollen_ready <- modern_pollen_ready[,-grep("Other", colnames(modern_polle
 # Southeastern from 0-336 cm all else northeastern
 depth <- as.numeric(rownames(gds519_ws64_pct))
 
-gds519_ws64_pct$`Pinus haploxylon.SE` <- gds519_ws64_pct$`Pinus haploxylon`
-gds519_ws64_pct$`Pinus undifferentiated.SE` <- gds519_ws64_pct$`Pinus undifferentiated`
-gds519_ws64_pct$`Pinus haploxylon.NE` <- gds519_ws64_pct$`Pinus haploxylon`
-gds519_ws64_pct$`Pinus undifferentiated.NE` <- gds519_ws64_pct$`Pinus undifferentiated`
+gds519_ws64_pct$`SE.Pinus haploxylon` <- gds519_ws64_pct$`Pinus haploxylon`
+gds519_ws64_pct$`SE.Pinus undifferentiated` <- gds519_ws64_pct$`Pinus undifferentiated`
+gds519_ws64_pct$`NE.Pinus haploxylon` <- gds519_ws64_pct$`Pinus haploxylon`
+gds519_ws64_pct$`NE.Pinus undifferentiated` <- gds519_ws64_pct$`Pinus undifferentiated`
 
-gds519_ws64_pct$`Pinus haploxylon.SE`[depth > 336] <- 0
-gds519_ws64_pct$`Pinus undifferentiated.SE`[depth > 336] <- 0
+gds519_ws64_pct$`SE.Pinus haploxylon`[depth > 336] <- 0
+gds519_ws64_pct$`SE.Pinus undifferentiated`[depth > 336] <- 0
 
-gds519_ws64_pct$`Pinus haploxylon.NE`[depth <= 336] <- 0
-gds519_ws64_pct$`Pinus undifferentiated.NE`[depth <= 336] <- 0
+gds519_ws64_pct$`NE.Pinus haploxylon`[depth <= 336] <- 0
+gds519_ws64_pct$`NE.Pinus undifferentiated`[depth <= 336] <- 0
 
 gds519_ws64_pct <- gds519_ws64_pct[,-c(25, 26)] # Get rid of unsplit columns
 
@@ -239,7 +243,7 @@ gds519_ws64_pct_join <- analogue::join(gds519_ws64_pct, modern_pollen_ready)
 
 # Build models
 mat_model_tave <- rioja::MAT(
-  y = gds519_ws64_pct_join$modern_pollen_ready,
+  y = modern_pollen_ready,
   x = modern_climate_ready$tave,
   dist.method ="sq.chord",
   k = 7,
@@ -263,3 +267,40 @@ gds519_prediction$dist.n
 
 # The row index for the nearest sample
 gds519_prediction$match.name
+
+# Create a Data Frame of the results and save as a csv
+results <- data.frame(
+  depth = as.numeric(rownames(gds519_t)),
+  temperature = gds519_prediction$fit.boot,
+  error = gds519_prediction$SEP.boot,
+  analog1_ID1 = gds519_prediction$match.name[, 1],
+  analog1_distance = gds519_prediction$dist.n[,1],
+  analog1_name = sapply(gds519_prediction$match.name[, 1], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog2_ID1 = gds519_prediction$match.name[, 2],
+  analog2_distance = gds519_prediction$dist.n[,2],
+  analog2_name = sapply(gds519_prediction$match.name[, 2], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog3_ID1 = gds519_prediction$match.name[, 3],
+  analog3_distance = gds519_prediction$dist.n[,3],
+  analog3_name = sapply(gds519_prediction$match.name[, 3], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog4_ID1 = gds519_prediction$match.name[, 4],
+  analog4_distance = gds519_prediction$dist.n[,4],
+  analog4_name = sapply(gds519_prediction$match.name[, 4], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog5_ID1 = gds519_prediction$match.name[, 5],
+  analog5_distance = gds519_prediction$dist.n[,5],
+  analog5_name = sapply(gds519_prediction$match.name[, 5], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog6_ID1 = gds519_prediction$match.name[, 6],
+  analog6_distance = gds519_prediction$dist.n[,6],
+  analog6_name = sapply(gds519_prediction$match.name[, 6], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)]),
+  analog7_ID1 = gds519_prediction$match.name[, 7],
+  analog7_distance = gds519_prediction$dist.n[,7],
+  analog7_name = sapply(gds519_prediction$match.name[, 7], function(x) modern_pollen$SITENAME[modern_pollen$ID1 == as.numeric(x)])
+) %>% 
+  write_csv("results.csv")
+
+# Quickly plot the results
+plot(
+  x = results$depth,
+  y = results$temperature.MAT,
+  type = "l"
+)
+
